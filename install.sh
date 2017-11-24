@@ -1,5 +1,16 @@
 #!/bin/bash
-export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+#Set PATH
+unset check
+for i in `echo $PATH | sed 's/:/\n/g'`
+do
+        if [[ ${i} == "/usr/local/bin" ]];then
+                check="yes"
+        fi
+done
+if [[ -z ${check} ]];then
+        echo "export PATH=${PATH}:/usr/local/bin" >> ~/.bashrc
+        . ~/.bashrc
+fi
 
 #Check Root
 [ $(id -u) != "0" ] && { echo "Error: You must be root to run this script"; exit 1; }
@@ -259,7 +270,7 @@ sed -i "s/sspanelv2/mudbjson/g" /usr/local/shadowsocksr/userapiconfig.py
 sed -i "s/UPDATE_TIME = 60/UPDATE_TIME = 10/g" /usr/local/shadowsocksr/userapiconfig.py
 sed -i "s/SERVER_PUB_ADDR = '127.0.0.1'/SERVER_PUB_ADDR = '$(wget -qO- -t1 -T2 ipinfo.io/ip)'/" /usr/local/shadowsocksr/userapiconfig.py
 #INstall Success
-read -t 15 -p "输入与您主机绑定的域名(请在15秒内输入，超时将跳过本步骤): " ipname
+read -t 20 -p "输入与您主机绑定的域名(请在20秒内输入，超时将跳过本步骤): " ipname
 echo "$ipname" > /usr/local/shadowsocksr/myip.txt
 if [[ $1 == develop ]];then
     if [[ -e /usr/local/SSR-Bash-Python/check.log ]];then
@@ -288,8 +299,20 @@ if [[ $1 == develop ]];then
         fi
     fi
 fi
+if [[ -e /etc/sysconfig/iptables-config ]];then
+        ipconf=$(cat /etc/sysconfig/iptables-config | grep 'IPTABLES_MODULES_UNLOAD="no"')
+        if [[ -z ${ipconf} ]];then
+                sed -i 's/IPTABLES_MODULES_UNLOAD="yes"/IPTABLES_MODULES_UNLOAD="no"/g' /etc/sysconfig/iptables-config
+                echo "安装完成，准备重启"
+                sleep 3s
+                reboot
+        fi
+fi
 bash /usr/local/SSR-Bash-Python/self-check.sh
 echo '安装完成！输入 ssr 即可使用本程序~'
+if [[ ${check} != "yes" ]] ;then
+        echo "如果你执行 ssr 提示找不到命令，请尝试退出并重新登录来解决"
+fi
 echo '原作者已经停止本脚本更新，此版本为作者删除项目前最后一个版本魔改而来'
 echo '不喜勿喷!'
 echo '谨慎使用！仅供研究！'
